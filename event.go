@@ -5,7 +5,7 @@
 
 package slowlog
 
-// An event is a query like "SELECT col FROM t WHERE id = 1", some metrics like
+// An Event is a query like "SELECT col FROM t WHERE id = 1", some metrics like
 // Query_time (slow log) or SUM_TIMER_WAIT (Performance Schema), and other
 // metadata like default database, timestamp, etc. Metrics and metadata are not
 // guaranteed to be defined--and frequently they are not--but at minimum an

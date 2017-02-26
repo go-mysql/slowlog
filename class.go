@@ -6,6 +6,7 @@
 package slowlog
 
 const (
+	// MAX_EXAMPLE_BYTES defines the maximum Example.Query size.
 	MAX_EXAMPLE_BYTES = 1024 * 10
 )
 

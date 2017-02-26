@@ -3,7 +3,8 @@
 	Copyright 2014-2016 Percona LLC and/or its affiliates
 */
 
-// Package slow implements a MySQL slow log parser.
+// Package slowlog provides functions and data structures for working with the
+// MySQL slow log.
 package slowlog
 
 import (
@@ -19,8 +20,8 @@ import (
 )
 
 var (
+	// ErrStarted is returned if Parser.Start is called more than once.
 	ErrStarted = errors.New("parser is started")
-	ErrStopped = errors.New("parser is stopped")
 )
 
 // Options encapsulate common options for making a new LogParser.
@@ -29,7 +30,10 @@ type Options struct {
 	FilterAdminCommand map[string]bool // admin commands to ignore
 }
 
-// A LogParser sends events to a channel.
+// A Parser parses events from a slow log. The canonical Parser is FileParser
+// because the slow log is a file. The caller receives events on the Events
+// channel. This channel is closed when there are no more events. Any error
+// during parsing is returned by Error.
 type Parser interface {
 	Start(Options) error
 	Events() <-chan Event
@@ -47,7 +51,8 @@ var adminRe = regexp.MustCompile(`command: (.+)`)
 var setRe = regexp.MustCompile(`^SET (?:last_insert_id|insert_id|timestamp)`)
 var useRe = regexp.MustCompile(`^(?i)use `)
 
-// A FileParser parses a MySQL slow log.
+// FileParser represents a file-based Parser. This is the canonical Parser
+// because the slow log is a file.
 type FileParser struct {
 	file *os.File
 	// --
@@ -68,6 +73,7 @@ type FileParser struct {
 var Debug = false
 
 // NewFileParser returns a new FileParser that reads from the open file.
+// The file is not closed.
 func NewFileParser(file *os.File) *FileParser {
 	p := &FileParser{
 		file: file,
@@ -97,9 +103,9 @@ func (p *FileParser) Stop() {
 	return
 }
 
-// Start starts the parser. Events are sent to the unbuffered event channel.
-// Parsing stops on EOF, error, or call to Stop. The event channel is closed
-// when parsing stops. The file is not closed.
+// Start starts the parser. Events are sent to the unbuffered Events channel.
+// Parsing stops on EOF, error, or call to Stop. The Events channel is closed
+// when parsing stops.
 func (p *FileParser) Start(opt Options) error {
 	if p.started {
 		return ErrStarted
@@ -122,10 +128,14 @@ func (p *FileParser) Start(opt Options) error {
 	return nil
 }
 
+// Events returns the channel to which events from the slow log are sent.
+// The channel is closed when there are no more events. Events are not sent
+// until Start is called.
 func (p *FileParser) Events() <-chan Event {
 	return p.eventChan
 }
 
+// Error returns an error, if any, encountered while parsing the slow log.
 func (p *FileParser) Error() error {
 	return p.err
 }
