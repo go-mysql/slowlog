@@ -3,12 +3,12 @@
 	"GoVersion": "go1.7",
 	"GodepVersion": "v74",
 	"Packages": [
-		"github.com/daniel-nichter/deep-equal"
+		"github.com/go-test/deep"
 	],
 	"Deps": [
 		{
-			"ImportPath": "github.com/daniel-nichter/deep-equal",
-			"Rev": "9b1b478ed7a73cbbd73febacdbc0f863430da13d"
+			"ImportPath": "github.com/go-test/deep",
+			"Rev": "64dede292689f3a95b6fa7fb6f3efec6c2fecf06"
 		}
 	]
 }

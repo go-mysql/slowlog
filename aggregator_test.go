@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/daniel-nichter/deep-equal"
 	"github.com/go-mysql/query"
 	"github.com/go-mysql/slowlog"
+	"github.com/go-test/deep"
 )
 
 var examples = true
@@ -78,7 +78,7 @@ func zeroPercentiles(r *slowlog.Result) {
 
 func TestSlow001(t *testing.T) {
 	got, expect := aggregateSlowLog(t, "slow001.log", "slow001.json", 0)
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -89,7 +89,7 @@ func TestSlow001WithTzOffset(t *testing.T) {
 	// Use the same files as TestSlow001NoExamples but with a tz=-1
 	expect.Class["7F7D57ACDD8A346E"].Example.Ts = "2007-10-15 20:43:52"
 	expect.Class["3A99CC42AEDCCFCD"].Example.Ts = "2007-10-15 20:45:10"
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -99,7 +99,7 @@ func TestSlow001NoExamples(t *testing.T) {
 	examples = false
 	defer func() { examples = true }()
 	got, expect := aggregateSlowLog(t, "slow001.log", "slow001-no-examples.json", 0)
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -108,7 +108,7 @@ func TestSlow001NoExamples(t *testing.T) {
 // Test p95 and median.
 func TestSlow010(t *testing.T) {
 	got, expect := aggregateSlowLog(t, "slow010.log", "slow010.json", 0)
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -116,7 +116,7 @@ func TestSlow010(t *testing.T) {
 
 func TestSlow018(t *testing.T) {
 	got, expect := aggregateSlowLog(t, "slow018.log", "slow018.json", 0)
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -126,19 +126,19 @@ func TestSlow018(t *testing.T) {
 func TestUseDb(t *testing.T) {
 	// Test db is not inherited
 	got, expect := aggregateSlowLog(t, "slow020.log", "slow020.json", 0)
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
 	// Test "use" is not case sensitive
 	got, expect = aggregateSlowLog(t, "slow021.log", "slow021.json", 0)
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
 	// Test we are parsing db names in backticks
 	got, expect = aggregateSlowLog(t, "slow022.log", "slow022.json", 0)
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -146,7 +146,7 @@ func TestUseDb(t *testing.T) {
 
 func TestOutlierSlow025(t *testing.T) {
 	got, expect := aggregateSlowLog(t, "slow025.log", "slow025.json", 0)
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}

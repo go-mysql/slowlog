@@ -10,8 +10,8 @@ import (
 	"path"
 	"testing"
 
-	"github.com/daniel-nichter/deep-equal"
 	"github.com/go-mysql/slowlog"
+	"github.com/go-test/deep"
 )
 
 func parseSlowLog(t *testing.T, filename string, o slowlog.Options) []slowlog.Event {
@@ -38,7 +38,7 @@ func parseSlowLog(t *testing.T, filename string, o slowlog.Options) []slowlog.Ev
 func TestParserEmptySlowLog(t *testing.T) {
 	got := parseSlowLog(t, "empty.log", noOptions)
 	expect := []slowlog.Event{}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -85,7 +85,7 @@ func TestParserSlowLog001(t *testing.T) {
 			BoolMetrics: map[string]bool{},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -352,7 +352,7 @@ SET    biz = '91848182522'`,
 			},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -390,7 +390,7 @@ func TestParserSlowLog003(t *testing.T) {
 			},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -418,7 +418,7 @@ func TestParserSlowLog004(t *testing.T) {
 			},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -462,7 +462,7 @@ func TestParserSlowLog005(t *testing.T) {
 			},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -642,7 +642,7 @@ func TestParserSlowLog006(t *testing.T) {
 			},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -672,7 +672,7 @@ func TestParserSlowLog007(t *testing.T) {
 			},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -742,7 +742,7 @@ func TestParserSlowLog008(t *testing.T) {
 			},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -788,7 +788,7 @@ func TestParserSlowLog009(t *testing.T) {
 			},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -920,7 +920,7 @@ func TestParserSlowLog011(t *testing.T) {
 			},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -980,7 +980,7 @@ func TestParserSlowLog012(t *testing.T) {
 			BoolMetrics: map[string]bool{},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -1096,7 +1096,7 @@ func TestParserSlowLog013(t *testing.T) {
 			BoolMetrics: map[string]bool{},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -1272,7 +1272,7 @@ func TestParserSlowLog014(t *testing.T) {
 			},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -1300,7 +1300,7 @@ func TestParserSlowLog001StartOffset(t *testing.T) {
 			BoolMetrics: map[string]bool{},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -1338,7 +1338,7 @@ func TestParseSlow016(t *testing.T) {
 			BoolMetrics: map[string]bool{},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -1367,7 +1367,7 @@ func TestParseSlow017(t *testing.T) {
 			BoolMetrics: map[string]bool{},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -1517,7 +1517,7 @@ func TestParseSlow019(t *testing.T) {
 			},
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}
@@ -1695,7 +1695,7 @@ func TestParseSlow023(t *testing.T) {
 			RateLimit:   0,
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		//dump(expect)
 		t.Error(diff)
@@ -1789,7 +1789,7 @@ func TestParseSlow024(t *testing.T) {
 			RateLimit:   0,
 		},
 	}
-	if diff, _ := deep.Equal(got, expect); diff != nil {
+	if diff := deep.Equal(got, expect); diff != nil {
 		dump(got)
 		t.Error(diff)
 	}

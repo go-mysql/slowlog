@@ -9,9 +9,15 @@ import (
 	"fmt"
 
 	"github.com/go-mysql/slowlog"
+	"github.com/go-test/deep"
 )
 
 var noOptions = slowlog.Options{}
+
+func init() {
+	deep.FloatPrecision = 6 // microsecond time
+	deep.LogErrors = true
+}
 
 func dump(v interface{}) {
 	bytes, _ := json.MarshalIndent(v, "", " ")

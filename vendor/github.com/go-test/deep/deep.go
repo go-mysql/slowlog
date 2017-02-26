@@ -1,27 +1,3 @@
-/*
-	The MIT License (MIT)
-
-	Copyright (c) 2015 Daniel Nichter
-
-	Permission is hereby granted, free of charge, to any person obtaining a copy
-	of this software and associated documentation files (the "Software"), to deal
-	in the Software without restriction, including without limitation the rights
-	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-	copies of the Software, and to permit persons to whom the Software is
-	furnished to do so, subject to the following conditions:
-
-	The above copyright notice and this permission notice shall be included in all
-	copies or substantial portions of the Software.
-
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-	SOFTWARE.
-*/
-
 // Package deep provides function deep.Equal which is like reflect.DeepEqual but
 // retunrs a list of differences. This is helpful when comparing complex types
 // like structures and maps.
@@ -30,22 +6,39 @@ package deep
 import (
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 )
 
 var (
-	FloatPrecision = 6
-	MaxDiff        = 5
-	MaxDepth       = 10
+	// FloatPrecision is the number of decimal places to round float values
+	// to when comparing.
+	FloatPrecision = 10
+
+	// MaxDiff specifies the maximum number of differences to return.
+	MaxDiff = 10
+
+	// MaxDepth specifies the maximum levels of a struct to recurse into.
+	MaxDepth = 10
+
+	// LogErrors causes errors to be logged to STDERR when true.
+	LogErrors = false
+
+	// CompareUnexportedFields causes unexported struct fields, like s in
+	// T{s int}, to be comparsed when true.
+	CompareUnexportedFields = false
 )
 
 var (
-	ErrMaxRecursion      = errors.New("recursed to MaxDepth")
-	ErrTypeMismatch      = errors.New("variables are different reflect.Type")
-	ErrKindMismatch      = errors.New("variables are different reflect.Kind")
-	ErrNotHandled        = errors.New("cannot compare the reflect.Kind")
-	ErrUnexpectedInvalid = errors.New("unexpected reflect.Invalid kind")
+	// ErrMaxRecursion is logged when MaxDepth is reached.
+	ErrMaxRecursion = errors.New("recursed to MaxDepth")
+
+	// ErrTypeMismatch is logged when Equal passed two different types of values.
+	ErrTypeMismatch = errors.New("variables are different reflect.Type")
+
+	// ErrNotHandled is logged when a primitive Go kind is not handled.
+	ErrNotHandled = errors.New("cannot compare the reflect.Kind")
 )
 
 type cmp struct {
@@ -60,7 +53,7 @@ type cmp struct {
 //
 // If a type has an Equal method, like time.Equal, it is called to check for
 // equality.
-func Equal(a, b interface{}) ([]string, error) {
+func Equal(a, b interface{}) []string {
 	aVal := reflect.ValueOf(a)
 	bVal := reflect.ValueOf(b)
 	c := &cmp{
@@ -68,23 +61,25 @@ func Equal(a, b interface{}) ([]string, error) {
 		buff:        []string{},
 		floatFormat: fmt.Sprintf("%%.%df", FloatPrecision),
 	}
-	err := c.equals(aVal, bVal, 0)
-	if len(c.diff) == 0 {
-		c.diff = nil
+	c.equals(aVal, bVal, 0)
+	if len(c.diff) > 0 {
+		return c.diff // diffs
 	}
-	return c.diff, err
+	return nil // no diffs
 }
 
-func (c *cmp) equals(a, b reflect.Value, level int) error {
+func (c *cmp) equals(a, b reflect.Value, level int) {
 	if level > MaxDepth {
-		return ErrMaxRecursion
+		logError(ErrMaxRecursion)
+		return
 	}
 
 	aType := a.Type()
 	bType := b.Type()
 	if aType != bType {
 		c.saveDiff(aType, bType)
-		return ErrTypeMismatch
+		logError(ErrTypeMismatch)
+		return
 	}
 
 	aKind := a.Kind()
@@ -98,7 +93,6 @@ func (c *cmp) equals(a, b reflect.Value, level int) error {
 	}
 	if bKind == reflect.Ptr || bKind == reflect.Interface {
 		b = b.Elem()
-		bKind = b.Kind()
 		if b.IsValid() {
 			bType = b.Type()
 		}
@@ -111,12 +105,7 @@ func (c *cmp) equals(a, b reflect.Value, level int) error {
 		} else if !a.IsValid() && b.IsValid() {
 			c.saveDiff("<nil pointer>", bType)
 		}
-		return nil
-	}
-
-	if aKind != bKind { // shouldn't be possible
-		c.saveDiff(aKind, bKind)
-		return ErrKindMismatch
+		return
 	}
 
 	// Types with an Equal(), like time.Time.
@@ -126,7 +115,7 @@ func (c *cmp) equals(a, b reflect.Value, level int) error {
 		if !retVals[0].Bool() {
 			c.saveDiff(a, b)
 		}
-		return nil
+		return
 	}
 
 	switch aKind {
@@ -147,7 +136,7 @@ func (c *cmp) equals(a, b reflect.Value, level int) error {
 			Iterate through the fields (FirstName, LastName), recurse into their values.
 		*/
 		for i := 0; i < a.NumField(); i++ {
-			if aType.Field(i).PkgPath != "" {
+			if aType.Field(i).PkgPath != "" && !CompareUnexportedFields {
 				continue // skip unexported field, e.g. s in type T struct {s string}
 			}
 
@@ -158,9 +147,8 @@ func (c *cmp) equals(a, b reflect.Value, level int) error {
 			af := a.Field(i)
 			bf := b.Field(i)
 
-			if err := c.equals(af, bf, level+1); err != nil { // recurse to compare the field values
-				return err
-			}
+			// Recurse to compare the field values
+			c.equals(af, bf, level+1)
 
 			c.pop() // pop field name from buff
 
@@ -190,28 +178,20 @@ func (c *cmp) equals(a, b reflect.Value, level int) error {
 			} else if !a.IsNil() && b.IsNil() {
 				c.saveDiff(a, "<nil map>")
 			}
-			return nil
+			return
 		}
 
 		if a.Pointer() == b.Pointer() {
-			return nil
+			return
 		}
 
-		aKeys := a.MapKeys()
-		bKeys := b.MapKeys()
-
-		sharedKeys := map[string]bool{} // keys in a and b
-
-		for _, key := range aKeys {
+		for _, key := range a.MapKeys() {
 			c.push(fmt.Sprintf("map[%s]", key))
-			sharedKeys[key.String()] = true
 
 			aVal := a.MapIndex(key)
 			bVal := b.MapIndex(key)
 			if bVal.IsValid() {
-				if err := c.equals(aVal, bVal, level+1); err != nil {
-					return err
-				}
+				c.equals(aVal, bVal, level+1)
 			} else {
 				c.saveDiff(aVal, "<does not have key>")
 			}
@@ -219,19 +199,20 @@ func (c *cmp) equals(a, b reflect.Value, level int) error {
 			c.pop()
 
 			if len(c.diff) >= MaxDiff {
-				break
+				return
 			}
 		}
 
-		for _, key := range bKeys {
-			if _, ok := sharedKeys[key.String()]; ok {
+		for _, key := range b.MapKeys() {
+			if aVal := a.MapIndex(key); aVal.IsValid() {
 				continue
 			}
+
 			c.push(fmt.Sprintf("map[%s]", key))
 			c.saveDiff("<does not have key>", b.MapIndex(key))
 			c.pop()
 			if len(c.diff) >= MaxDiff {
-				break
+				return
 			}
 		}
 	case reflect.Slice:
@@ -241,11 +222,11 @@ func (c *cmp) equals(a, b reflect.Value, level int) error {
 			} else if !a.IsNil() && b.IsNil() {
 				c.saveDiff(a, "<nil slice>")
 			}
-			return nil
+			return
 		}
 
 		if a.Pointer() == b.Pointer() {
-			return nil
+			return
 		}
 
 		aLen := a.Len()
@@ -257,9 +238,7 @@ func (c *cmp) equals(a, b reflect.Value, level int) error {
 		for i := 0; i < n; i++ {
 			c.push(fmt.Sprintf("slice[%d]", i))
 			if i < aLen && i < bLen {
-				if err := c.equals(a.Index(i), b.Index(i), level+1); err != nil {
-					return err
-				}
+				c.equals(a.Index(i), b.Index(i), level+1)
 			} else if i < aLen {
 				c.saveDiff(a.Index(i), "<no value>")
 			} else {
@@ -281,7 +260,7 @@ func (c *cmp) equals(a, b reflect.Value, level int) error {
 		aval := fmt.Sprintf(c.floatFormat, a.Float())
 		bval := fmt.Sprintf(c.floatFormat, b.Float())
 		if aval != bval {
-			c.saveDiff(aval, bval)
+			c.saveDiff(a.Float(), b.Float())
 		}
 	case reflect.Bool:
 		if a.Bool() != b.Bool() {
@@ -301,10 +280,8 @@ func (c *cmp) equals(a, b reflect.Value, level int) error {
 		}
 
 	default:
-		return ErrNotHandled
+		logError(ErrNotHandled)
 	}
-
-	return nil
 }
 
 func (c *cmp) push(name string) {
@@ -323,5 +300,15 @@ func (c *cmp) saveDiff(aval, bval interface{}) {
 		c.diff = append(c.diff, fmt.Sprintf("%s: %v != %v", varName, aval, bval))
 	} else {
 		c.diff = append(c.diff, fmt.Sprintf("%v != %v", aval, bval))
+	}
+}
+
+func init() {
+	log.SetFlags(log.Lshortfile)
+}
+
+func logError(err error) {
+	if LogErrors {
+		log.Println(err)
 	}
 }
