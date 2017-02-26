@@ -1,6 +1,6 @@
-# Slow Log Parsing and Aggregation
+# MySQL Slow Log Parsing and Aggregation
 
-[![GoDoc](https://godoc.org/github.com/go-mysql/slowlog?status.svg)](https://godoc.org/github.com/go-mysql/slowlog)
+[![Go Report Card](https://goreportcard.com/badge/github.com/go-mysql/slowlog)](https://goreportcard.com/report/github.com/go-mysql/slowlog) [![Build Status](https://travis-ci.org/go-mysql/slowlog.svg?branch=master)](https://travis-ci.org/go-mysql/slowlog) [![GoDoc](https://godoc.org/github.com/go-mysql/slowlog?status.svg)](https://godoc.org/github.com/go-mysql/slowlog)
 
 This package provides functions for working with the MySQL slow log.
 
