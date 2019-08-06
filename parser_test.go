@@ -1311,7 +1311,7 @@ func TestParserSlowLog001StartOffset(t *testing.T) {
 func TestParserSlowLog015(t *testing.T) {
 	got := parseSlowLog(t, "slow015.log", noOptions)
 	if len(got) != 2 {
-		t.Error("got %d expected 2", len(got))
+		t.Errorf("got %d expected 2", len(got))
 	}
 }
 

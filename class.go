@@ -1,5 +1,5 @@
 /*
-	Copyright 2017 Daniel Nichter
+	Copyright 2017, 2019 Daniel Nichter
 	Copyright 2014-2016 Percona LLC and/or its affiliates
 */
 
@@ -17,11 +17,11 @@ type Class struct {
 	Id            string   // 32-character hex checksum of fingerprint
 	Fingerprint   string   // canonical form of query: values replaced with "?"
 	Metrics       Metrics  // statistics for each metric, e.g. max Query_time
-	TotalQueries  uint     // total number of queries in class
+	TotalQueries  uint64   // total number of queries in class
 	UniqueQueries uint     // unique number of queries in class
 	Example       *Example `json:",omitempty"` // sample query with max Query_time
 	// --
-	outliers uint
+	outliers uint64
 	lastDb   string
 	sample   bool
 }
@@ -91,8 +91,69 @@ func (c *Class) Finalize(rateLimit uint) {
 		rateLimit = 1
 	}
 	c.Metrics.Finalize(rateLimit)
-	c.TotalQueries = (c.TotalQueries * rateLimit) + c.outliers
+	c.TotalQueries = (c.TotalQueries * uint64(rateLimit)) + c.outliers
 	if c.Example.QueryTime == 0 {
 		c.Example = nil
 	}
+}
+
+// NewAggregateClass makes a new Class from the given member classes.
+func NewAggregateClass(id, fingerprint string, members []*Class) *Class {
+	aggClass := &Class{
+		Id:            id,
+		Fingerprint:   fingerprint,
+		Metrics:       NewMetrics(),
+		UniqueQueries: uint(len(members)),
+		TotalQueries:  0,
+	}
+
+	for _, memberClass := range members {
+		aggClass.TotalQueries += memberClass.TotalQueries
+
+		for newMetric, newStats := range memberClass.Metrics.TimeMetrics {
+			stats, ok := aggClass.Metrics.TimeMetrics[newMetric]
+			if !ok {
+				m := *newStats
+				aggClass.Metrics.TimeMetrics[newMetric] = &m
+			} else {
+				stats.Sum += newStats.Sum
+				stats.Avg = stats.Sum / float64(aggClass.TotalQueries)
+				if newStats.Min < stats.Min {
+					stats.Min = newStats.Min
+				}
+				if newStats.Max > stats.Max {
+					stats.Max = newStats.Max
+				}
+			}
+		}
+
+		for newMetric, newStats := range memberClass.Metrics.NumberMetrics {
+			stats, ok := aggClass.Metrics.NumberMetrics[newMetric]
+			if !ok {
+				m := *newStats
+				aggClass.Metrics.NumberMetrics[newMetric] = &m
+			} else {
+				stats.Sum += newStats.Sum
+				stats.Avg = stats.Sum / aggClass.TotalQueries
+				if newStats.Min < stats.Min {
+					stats.Min = newStats.Min
+				}
+				if newStats.Max > stats.Max {
+					stats.Max = newStats.Max
+				}
+			}
+		}
+
+		for newMetric, newStats := range memberClass.Metrics.BoolMetrics {
+			stats, ok := aggClass.Metrics.BoolMetrics[newMetric]
+			if !ok {
+				m := *newStats
+				aggClass.Metrics.BoolMetrics[newMetric] = &m
+			} else {
+				stats.Sum += newStats.Sum
+			}
+		}
+	}
+
+	return aggClass
 }
