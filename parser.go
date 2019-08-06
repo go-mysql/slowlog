@@ -17,6 +17,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var (
@@ -68,6 +69,7 @@ type FileParser struct {
 	started     bool
 	event       *Event
 	err         error
+	*sync.Mutex
 }
 
 var Debug = false
@@ -86,6 +88,7 @@ func NewFileParser(file *os.File) *FileParser {
 		queryLines:  0,
 		lineOffset:  0,
 		event:       NewEvent(),
+		Mutex:       &sync.Mutex{},
 	}
 	return p
 }
@@ -93,6 +96,8 @@ func NewFileParser(file *os.File) *FileParser {
 // Stop stops the parser before parsing the next event or while blocked on
 // sending the current event to the event channel.
 func (p *FileParser) Stop() {
+	p.Lock()
+	defer p.Unlock()
 	if Debug {
 		log.Println("stopping")
 	}
@@ -107,6 +112,8 @@ func (p *FileParser) Stop() {
 // Parsing stops on EOF, error, or call to Stop. The Events channel is closed
 // when parsing stops.
 func (p *FileParser) Start(opt Options) error {
+	p.Lock()
+	defer p.Unlock()
 	if p.started {
 		return ErrStarted
 	}
