@@ -12,18 +12,19 @@ package slowlog
 // event is expected to define the query and Query_time metric. Other metrics
 // and metadata vary according to MySQL version, distro, and configuration.
 type Event struct {
-	Offset        uint64 // byte offset in file at which event starts
-	Ts            string // raw timestamp of event
-	Admin         bool   // true if Query is admin command
-	Query         string // SQL query or admin command
-	User          string
-	Host          string
-	Db            string
-	TimeMetrics   map[string]float64 // *_time and *_wait metrics
-	NumberMetrics map[string]uint64  // most metrics
-	BoolMetrics   map[string]bool    // yes/no metrics
-	RateType      string             // Percona Server rate limit type
-	RateLimit     uint               // Percona Server rate limit value
+	Offset          uint64 // byte offset in file at which event starts
+	Ts              string // raw timestamp of event
+	Admin           bool   // true if Query is admin command
+	Query           string // SQL query or admin command
+	User            string
+	Host            string
+	Db              string
+	TimeMetrics     map[string]float64 // *_time and *_wait metrics
+	NumberMetrics   map[string]uint64  // most metrics
+	BoolMetrics     map[string]bool    // yes/no metrics
+	RateType        string             // Percona Server rate limit type
+	RateLimit       uint               // Percona Server rate limit value
+	CommentMetadata map[string]string
 }
 
 // NewEvent returns a new Event with initialized metric maps.
