@@ -14,7 +14,6 @@ type Metrics struct {
 	TimeMetrics   map[string]*TimeStats   `json:",omitempty"`
 	NumberMetrics map[string]*NumberStats `json:",omitempty"`
 	BoolMetrics   map[string]*BoolStats   `json:",omitempty"`
-	//	TODO(Yash): Add another metrics for metadata.
 }
 
 // TimeStats are microsecond-based metrics like Query_time and Lock_time.
@@ -27,8 +26,6 @@ type TimeStats struct {
 	P95        float64 `json:",omitempty"` // 95th percentile
 	Max        float64 `json:",omitempty"`
 	outlierSum float64
-	//	TODO(Yash) timeTakeToTraceId as map.  Move this to Metrics class or create another struct parallel to TImeMetrics, NumberMetrics, BoolMetrics
-	//	traceIdOfMaxSql
 }
 
 // NumberStats are integer-based metrics like Rows_sent and Merge_passes.
@@ -75,7 +72,6 @@ func (m *Metrics) AddEvent(e Event, outlier bool) {
 			stats.Sum += val
 		}
 		stats.vals = append(stats.vals, float64(val))
-		//	TODO(Yash): Add traceIdProto to the map defined in TimeMetrics
 	}
 
 	for metric, val := range e.NumberMetrics {
@@ -137,7 +133,6 @@ func (m *Metrics) Finalize(rateLimit uint) {
 
 		// Update sum last because avg ^ needs the original value.
 		s.Sum = (s.Sum * float64(rateLimit)) + s.outlierSum
-		//TODO(Yash): Do timeTakenToTraceIdProto[s.Max] to know the traceId and populate traceIdOfMaxSql
 	}
 
 	for _, s := range m.NumberMetrics {
