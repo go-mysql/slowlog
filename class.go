@@ -21,9 +21,11 @@ type Class struct {
 	UniqueQueries uint     // unique number of queries in class
 	Example       *Example `json:",omitempty"` // sample query with max Query_time
 	// --
-	outliers uint64
-	lastDb   string
-	sample   bool
+	outliers                uint64
+	lastDb                  string
+	sample                  bool
+	maxQueryTime            float64
+	MaxQueryCommentMetadata map[string]string
 }
 
 // A Example is a real query and its database, timestamp, and Query_time.
@@ -40,12 +42,14 @@ type Example struct {
 // If sample is true, the query with the greatest Query_time is saved.
 func NewClass(id, fingerprint string, sample bool) *Class {
 	return &Class{
-		Id:           id,
-		Fingerprint:  fingerprint,
-		Metrics:      NewMetrics(),
-		TotalQueries: 0,
-		Example:      &Example{},
-		sample:       sample,
+		Id:                      id,
+		Fingerprint:             fingerprint,
+		Metrics:                 NewMetrics(),
+		TotalQueries:            0,
+		Example:                 &Example{},
+		sample:                  sample,
+		maxQueryTime:            0,
+		MaxQueryCommentMetadata: map[string]string{},
 	}
 }
 
@@ -82,6 +86,13 @@ func (c *Class) AddEvent(e Event, outlier bool) {
 			}
 		}
 	}
+
+	if queryTime, ok := e.TimeMetrics["Query_time"]; ok {
+		if queryTime > c.maxQueryTime {
+			c.MaxQueryCommentMetadata = e.CommentMetadata
+		}
+	}
+
 }
 
 // Finalize calculates all metric statistics. Call this function when done

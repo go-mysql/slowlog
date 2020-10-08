@@ -9,6 +9,7 @@ package slowlog
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -396,6 +397,92 @@ func (p *FileParser) parseAdmin(line string) {
 	}
 }
 
+// Tested here:  https://play.golang.org/p/u7XZnxu2LLL
+func parseComments(queryWithComments string) map[string]string {
+	startIndex := strings.Index(queryWithComments, "/*")
+	if startIndex != -1 {
+		endIndex := strings.LastIndex(queryWithComments, "*/")
+		sqlComments := queryWithComments[startIndex:endIndex]
+		return parseKeyValuePairToMap(sqlComments)
+	}
+	return map[string]string{}
+}
+
+// Copied verbatim from https://gist.github.com/alexisvisco/4b846978c9346e4eaf618bb632c0693a
+func parseKeyValuePairToMap(msg string) map[string]string {
+
+	type kv struct {
+		key, val string
+	}
+
+	var pair *kv = nil
+	pairs := make(map[string]string)
+	buf := bytes.NewBuffer([]byte{})
+
+	var (
+		escape  = false
+		garbage = false
+		quoted  = false
+	)
+
+	completePair := func(buffer *bytes.Buffer, pair *kv) kv {
+		if pair != nil {
+			return kv{pair.key, buffer.String()}
+		} else {
+			return kv{buffer.String(), ""}
+		}
+	}
+
+	for _, c := range msg {
+		if !quoted && c == ' ' {
+			if buf.Len() != 0 {
+				if !garbage {
+					p := completePair(buf, pair)
+					pairs[p.key] = p.val
+					pair = nil
+				}
+				buf.Reset()
+			}
+			garbage = false
+		} else if !quoted && c == '=' {
+			if buf.Len() != 0 {
+				pair = &kv{key: buf.String(), val: ""}
+				buf.Reset()
+			} else {
+				garbage = true
+			}
+		} else if quoted && c == '\\' {
+			escape = true
+		} else if c == '"' {
+			if escape {
+				buf.WriteRune(c)
+				escape = false
+			} else {
+				quoted = !quoted
+			}
+		} else {
+			if escape {
+				buf.WriteRune('\\')
+				escape = false
+			}
+			buf.WriteRune(c)
+		}
+	}
+
+	if !garbage {
+		p := completePair(buf, pair)
+		pairs[p.key] = p.val
+	}
+
+	// Remove any key value pair where either of them is a blank string
+	for key, value := range pairs {
+		if key == "" || value == "" {
+			delete(pairs, key)
+		}
+	}
+	return pairs
+}
+
 func (p *FileParser) sendEvent(inHeader bool, inQuery bool) {
 	if Debug {
 		log.Println("send event")
@@ -421,6 +508,7 @@ func (p *FileParser) sendEvent(inHeader bool, inQuery bool) {
 	// Clean up the event.
 	p.event.Db = strings.TrimSuffix(p.event.Db, ";\n")
 	p.event.Query = strings.TrimSuffix(p.event.Query, ";")
+	p.event.CommentMetadata = parseComments(p.event.Query)
 
 	// Send the event.  This will block.
 	select {
